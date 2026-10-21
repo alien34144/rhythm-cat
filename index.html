@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#07070c">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>节奏猫 · 我的音游</title>
+<style>
+  :root{
+    --c0:#7c5cff; --c1:#22d3ee; --c2:#ff5c8a; --c3:#ffc93c;
+    --ink:#ffffff; --dim:rgba(255,255,255,.55);
+    --panel:rgba(18,18,28,.82); --line:rgba(255,255,255,.12);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{
+    margin:0;padding:0;height:100%;overflow:hidden;background:#07070c;color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    -webkit-user-select:none;user-select:none;overscroll-behavior:none;
+  }
+  #bg{position:fixed;inset:0;z-index:0;background-color:#000;background-position:center;background-size:cover;background-repeat:no-repeat}
+  #bgveil{position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:linear-gradient(180deg,rgba(5,5,12,.74),rgba(5,5,12,.28) 45%,rgba(5,5,12,.88))}
+  #cv{position:fixed;inset:0;z-index:1;display:block;touch-action:none}
+
+  .screen{
+    position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 22px) 20px calc(env(safe-area-inset-bottom) + 22px);
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+  }
+  .hidden{display:none!important}
+
+  /* ---------- 设置页 ---------- */
+  #setup{background:linear-gradient(180deg,rgba(7,7,12,.55),rgba(7,7,12,.9));backdrop-filter:blur(6px)}
+  .brand{text-align:center;margin:8px 0 18px}
+  .brand h1{margin:0;font-size:26px;letter-spacing:3px;font-weight:800;
+    background:linear-gradient(90deg,var(--c0),var(--c1),var(--c2));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .brand p{margin:6px 0 0;font-size:12px;color:var(--dim);letter-spacing:1px}
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:18px;
+    padding:16px;margin-bottom:14px;backdrop-filter:blur(14px);
+  }
+  .card h2{margin:0 0 12px;font-size:13px;font-weight:600;color:var(--dim);letter-spacing:2px}
+
+  .filebtn{
+    display:flex;align-items:center;gap:12px;width:100%;
+    padding:14px 16px;border-radius:14px;border:1px dashed rgba(255,255,255,.22);
+    background:rgba(255,255,255,.04);color:var(--ink);font-size:15px;
+    text-align:left;cursor:pointer;transition:.18s;
+  }
+  .filebtn:active{transform:scale(.985);background:rgba(255,255,255,.09)}
+  .filebtn .ico{width:34px;height:34px;flex:0 0 34px;border-radius:10px;display:flex;
+    align-items:center;justify-content:center;font-size:16px;
+    background:linear-gradient(135deg,var(--c0),var(--c1));color:#fff}
+  .filebtn .txt{flex:1;min-width:0}
+  .filebtn .name{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .filebtn .sub{display:block;font-size:11px;color:var(--dim);margin-top:3px}
+  input[type=file]{display:none}
+
+  .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
+  .bpm-val{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:1px}
+  .bpm-val small{font-size:12px;color:var(--dim);font-weight:500;margin-left:4px;letter-spacing:1px}
+  .stepper{display:flex;gap:8px}
+  .sbtn{
+    width:46px;height:46px;border-radius:14px;border:1px solid var(--line);
+    background:rgba(255,255,255,.06);color:#fff;font-size:20px;font-weight:700;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s;
+  }
+  .sbtn:active{background:rgba(255,255,255,.16);transform:scale(.94)}
+
+  .pills{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:2px}
+  .pill{
+    padding:12px 6px;border-radius:13px;border:1px solid var(--line);
+    background:rgba(255,255,255,.04);color:var(--dim);font-size:14px;font-weight:600;
+    cursor:pointer;transition:.18s;text-align:center;
+  }
+  .pill.on{
+    color:#fff;border-color:transparent;
+    background:linear-gradient(135deg,var(--c0),var(--c1));
+    box-shadow:0 6px 20px rgba(124,92,255,.35);
+  }
+  .pill small{display:block;font-size:10px;font-weight:400;opacity:.75;margin-top:3px}
+  .hint{font-size:11px;color:var(--dim);margin-top:10px;line-height:1.6}
+
+  .slider-wrap{margin-top:4px}
+  input[type=range]{
+    -webkit-appearance:none;width:100%;height:26px;background:transparent;margin:0;
+  }
+  input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;
+    background:linear-gradient(90deg,var(--c0),var(--c1));opacity:.85}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;
+    border-radius:50%;background:#fff;margin-top:-8px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:#7c5cff}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#fff}
+
+  .primary{
+    width:100%;padding:18px;border-radius:16px;border:0;color:#fff;font-size:17px;font-weight:800;
+    letter-spacing:2px;cursor:pointer;
+    background:linear-gradient(135deg,var(--c0),var(--c2));
+    box-shadow:0 10px 30px rgba(124,92,255,.4);transition:.18s;
+  }
+  .primary:active{transform:scale(.98)}
+  .primary:disabled{opacity:.35;box-shadow:none;cursor:default}
+  .ghost{
+    width:100%;padding:15px;border-radius:16px;border:1px solid var(--line);
+    background:rgba(255,255,255,.05);color:#fff;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  .ghost:active{background:rgba(255,255,255,.12)}
+  .spacer{flex:1;min-height:6px}
+
+  /* ---------- 暂停 / 结算 ---------- */
+  .center{justify-content:center;align-items:center;text-align:center}
+  #pause,#result{background:rgba(6,6,12,.86);backdrop-filter:blur(18px)}
+  #pause .card,#result .card{width:100%;max-width:380px}
+  .bigscore{font-size:52px;font-weight:900;font-variant-numeric:tabular-nums;letter-spacing:-1px;
+    background:linear-gradient(135deg,#fff,var(--c1));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .rank{font-size:64px;font-weight:900;line-height:1;letter-spacing:-2px;margin:4px 0 2px}
+  .statgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}
+  .stat{background:rgba(255,255,255,.05);border-radius:12px;padding:10px}
+  .stat b{display:block;font-size:19px;font-variant-numeric:tabular-nums}
+  .stat span{font-size:11px;color:var(--dim)}
+  .btnrow{display:flex;gap:10px;margin-top:16px}
+  .btnrow>*{flex:1}
+
+  #toast{
+    position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 28px);
+    transform:translateX(-50%) translateY(20px);z-index:99;
+    background:rgba(20,20,30,.95);border:1px solid var(--line);color:#fff;
+    padding:12px 18px;border-radius:14px;font-size:13px;max-width:86vw;text-align:center;
+    opacity:0;transition:.25s;pointer-events:none;line-height:1.5;white-space:pre-line;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{border-color:rgba(255,92,138,.6);background:rgba(60,12,26,.95)}
+  #pausbtn{
+    position:fixed;z-index:5;top:calc(env(safe-area-inset-top) + 12px);left:14px;
+    width:46px;height:46px;border-radius:50%;border:1px solid var(--line);
+    background:rgba(10,10,18,.6);color:#fff;font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px);
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="bgveil"></div>
+<canvas id="cv"></canvas>
+
+<!-- ============ 设置页 ============ -->
+<div id="setup" class="screen">
+  <div class="brand">
+    <h1>节奏猫</h1>
+    <p>用你自己的歌 · 配你自己的图</p>
+  </div>
+
+  <div class="card">
+    <h2>音乐</h2>
+    <label class="filebtn" for="fMusic">
+      <span class="ico">♪</span>
+      <span class="txt">
+        <span class="name" id="musicName">选择一首歌</span>
+        <span class="sub" id="musicSub">支持 mp3 / ogg / m4a / wav / flac</span>
+      </span>
+    </label>
+    <input type="file" id="fMusic" accept="audio/*,.mp3,.ogg,.m4a,.wav,.flac,.aac">
+    <div class="hint" id="bpmHint"></div>
+  </div>
+
+  <div class="card">
+    <h2>背景图片</h2>
+    <label class="filebtn" for="fBg">
+      <span class="ico">🖼</span>
+      <span class="txt">
+        <span class="name" id="bgName">选择背景（图片或 GIF 动图）</span>
+        <span class="sub" id="bgSub">GIF 会真的动起来</span>
+      </span>
+    </label>
+    <input type="file" id="fBg" accept="image/*,.gif">
+  </div>
+
+  <div class="card">
+    <h2>速度 (BPM)</h2>
+    <div class="row">
+      <div class="bpm-val"><span id="bpmText">120</span><small>BPM</small></div>
+      <div class="stepper">
+        <button class="sbtn" id="bpmMinus">−</button>
+        <button class="sbtn" id="bpmPlus">+</button>
+      </div>
+    </div>
+    <div class="hint" id="tapHint">选好歌会自动识别速度。不准的话就跟着节拍敲这个按钮 → <b id="tapBtn" style="color:#22d3ee;text-decoration:underline">敲击测速</b></div>
+  </div>
+
+  <div class="card">
+    <h2>难度</h2>
+    <div class="pills" id="diffPills">
+      <div class="pill on" data-d="0">简单<small>休闲</small></div>
+      <div class="pill" data-d="1">普通<small>有点节奏</small></div>
+      <div class="pill" data-d="2">困难<small>手会酸</small></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>下落速度</h2>
+    <div class="slider-wrap">
+      <input type="range" id="speed" min="1" max="10" step="1" value="6">
+    </div>
+    <div class="hint">往右滑 = 音符掉得更快、看得更远</div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <button class="primary" id="btnStart" disabled>开始游戏</button>
+  <button class="ghost" id="btnDemo" style="margin-top:10px">没歌？先用演示曲试试手感</button>
+</div>
+
+<!-- ============ 暂停 ============ -->
+<div id="pause" class="screen hidden center">
+  <div class="card">
+    <h2 style="text-align:center">暂停中</h2>
+    <button class="primary" id="btnResume">继续</button>
+    <div class="btnrow">
+      <button class="ghost" id="btnRestart">重来</button>
+      <button class="ghost" id="btnQuit">退出</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 结算 ============ -->
+<div id="result" class="screen hidden center">
+  <div class="card">
+    <h2 style="text-align:center" id="resName">这首歌</h2>
+    <div class="rank" id="resRank">S</div>
+    <div class="bigscore" id="resScore">0</div>
+    <div class="statgrid">
+      <div class="stat"><b id="resCombo">0</b><span>最大连击</span></div>
+      <div class="stat"><b id="resAcc">0%</b><span>准确率</span></div>
+      <div class="stat"><b id="resPerfect">0</b><span>PERFECT</span></div>
+      <div class="stat"><b id="resGood">0</b><span>GOOD</span></div>
+      <div class="stat"><b id="resMiss">0</b><span>MISS</span></div>
+      <div class="stat"><b id="resNotes">0</b><span>总音符</span></div>
+    </div>
+    <div class="btnrow">
+      <button class="ghost" id="btnAgain">再来一次</button>
+      <button class="primary" id="btnChange">换首歌</button>
+    </div>
+  </div>
+</div>
+
+<button id="pausbtn" class="hidden">❚❚</button>
+<div id="toast"></div>
+
+<script>
+(function () {
+'use strict';
+
+/* =========================================================
+   常量
+   ========================================================= */
+var LANES = 4;
+var LANE_COLORS = ['#7c5cff', '#22d3ee', '#ff5c8a', '#ffc93c'];
+var LANE_RGB = ['124,92,255', '34,211,238', '255,92,138', '255,201,60'];
+var KEYMAP = {
+  KeyD: 0, KeyF: 1, KeyJ: 2, KeyK: 3,
+  ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3,
+  KeyS: 0, KeyE: 1, KeyI: 2, KeyL: 3,
+  Digit1: 0, Digit2: 1, Digit3: 2, Digit4: 3
+};
+var W_PERFECT = 0.055;
+var W_GOOD = 0.110;
+var W_MISS = 0.160;
+var LEAD_IN = 5.0;          // 第一颗音符最早出现的时间（秒）
+var START_DELAY = 1.25;     // 点击开始到音乐响起的缓冲
+
+/* =========================================================
+   全局状态
+   ========================================================= */
+var G = {
+  state: 'setup',
+  ac: null,
+  buffer: null,
+  src: null,
+  startAt: 0,
+  endTime: 0,
+  lastNoteT: 0,
+  songName: '',
+  bgUrl: null,
+
+  bpm: 120,
+  beatDur: 0.5,
+  phase: 0,
+  diff: 0,
+  travel: 1.55,
+
+  onset: null,
+  onsetFps: 0,
+
+  laneNotes: [[], [], [], []],
+  lp: [0, 0, 0, 0],
+
+  score: 0, combo: 0, maxCombo: 0,
+  cnt: { perfect: 0, good: 0, miss: 0 },
+  total: 0,
+
+  flash: [0, 0, 0, 0],
+  effects: [],
+  judgeMsg: { text: '', sub: '', t: 99, color: '#fff' },
+  holding: [0, 0, 0, 0],
+
+  W: 0, H: 0, dpr: 1,
+  fieldW: 420, fieldX: 0, laneW: 105, judgeY: 600,
+  lastFrame: 0
+};
+
+var cv = document.getElementById('cv');
+var ctx = cv.getContext('2d');
+
+/* =========================================================
+   小工具
+   ========================================================= */
+function $(id) { return document.getElementById(id); }
+function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = $('toast');
+  el.textContent = msg;
+  el.className = 'show' + (isErr ? ' err' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { el.className = isErr ? 'err' : ''; }, 3200);
+}
+
+function roundRect(c, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+
+function fmtTime(s) {
+  if (!isFinite(s)) return '--:--';
+  var m = Math.floor(s / 60);
+  var ss = Math.floor(s % 60);
+  return m + ':' + (ss < 10 ? '0' : '') + ss;
+}
+
+/* =========================================================
+   画布尺寸
+   ========================================================= */
+function resize() {
+  G.dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+  G.W = window.innerWidth;
+  G.H = window.innerHeight;
+  cv.width = Math.round(G.W * G.dpr);
+  cv.height = Math.round(G.H * G.dpr);
+  cv.style.width = G.W + 'px';
+  cv.style.height = G.H + 'px';
+  ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+
+  G.fieldW = Math.min(G.W * 0.94, 470);
+  G.fieldX = (G.W - G.fieldW) / 2;
+  G.laneW = G.fieldW / LANES;
+  G.judgeY = G.H * 0.80;
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', function () {
+  setTimeout(resize, 120);
+});
+
+/* =========================================================
+   音频
+   ========================================================= */
+function ensureAC() {
+  if (!G.ac) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    G.ac = new AC();
+  }
+  return G.ac;
+}
+
+function songTime() {
+  if (!G.ac) return 0;
+  return G.ac.currentTime - G.startAt;
+}
+
+/* 简单的节拍点击音 */
+function blip(freq, dur, vol) {
+  var ac = G.ac;
+  if (!ac) return;
+  var o = ac.createOscillator();
+  var g = ac.createGain();
+  o.type = 'sine';
+  o.frequency.value = freq;
+  g.gain.setValueAtTime(vol, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
+  o.connect(g).connect(ac.destination);
+  o.start();
+  o.stop(ac.currentTime + dur + 0.02);
+}
+
+/* =========================================================
+   读取用户文件
+   ========================================================= */
+var ENCRYPTED = {
+  ncm: '网易云', qmc0: 'QQ音乐', qmc2: 'QQ音乐', qmc3: 'QQ音乐', qmcflac: 'QQ音乐',
+  qmcogg: 'QQ音乐', mflac: 'QQ音乐', mgg: 'QQ音乐', kgm: '酷狗', kgma: '酷狗',
+  kwm: '酷我', tm0: '酷我', xm: '虾米'
+};
+
+function extOf(name) {
+  var i = name.lastIndexOf('.');
+  return i < 0 ? '' : name.slice(i + 1).toLowerCase();
+}
+
+function handleMusic(file) {
+  if (!file) return;
+  var ext = extOf(file.name);
+
+  if (ENCRYPTED[ext]) {
+    toast('这是 ' + ENCRYPTED[ext] + ' 的加密格式（.' + ext + '），任何播放器都读不了。\n先用 ncmdump / um-cnv 这类工具转成 mp3 再选。', true);
+    return;
+  }
+
+  $('musicName').textContent = file.name;
+  $('musicSub').textContent = (file.size / 1048576).toFixed(1) + ' MB · 正在解析…';
+  G.songName = file.name.replace(/\.[^.]+$/, '');
+
+  var reader = new FileReader();
+  reader.onload = function () {
+    var ac = ensureAC();
+    ac.decodeAudioData(reader.result).then(function (buf) {
+      G.buffer = buf;
+      G.onset = null;
+      $('musicSub').textContent = fmtTime(buf.duration) + ' · ' + Math.round(buf.sampleRate / 1000) + 'kHz';
+      analyse(buf);
+    }).catch(function (e) {
+      console.error(e);
+      $('musicSub').textContent = '解析失败';
+      toast('这首歌解不开，可能是加密格式或者编码不支持。换一首 mp3 试试。', true);
+      G.buffer = null;
+      refreshStartBtn();
+    });
+  };
+  reader.onerror = function () {
+    toast('文件读取失败', true);
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function handleBg(file) {
+  if (!file) return;
+  if (G.bgUrl) URL.revokeObjectURL(G.bgUrl);
+  G.bgUrl = URL.createObjectURL(file);
+  $('bg').style.backgroundImage = 'url("' + G.bgUrl + '")';
+  $('bgName').textContent = file.name;
+  $('bgSub').textContent = (extOf(file.name) === 'gif' ? 'GIF 动图 · ' : '') + (file.size / 1048576).toFixed(1) + ' MB';
+}
+
+/* =========================================================
+   节拍分析：包络 → 自相关估 BPM → 相位对齐
+   ========================================================= */
+function analyse(buf) {
+  var sr = buf.sampleRate;
+  var data = buf.getChannelData(0);
+  var hop = 512;
+  var maxSamples = Math.min(data.length, Math.floor(sr * 70));
+  var n = Math.floor(maxSamples / hop);
+  var env = new Float32Array(n);
+
+  for (var i = 0; i < n; i++) {
+    var off = i * hop;
+    var s = 0;
+    for (var j = 0; j < hop; j++) {
+      var v = data[off + j];
+      s += v * v;
+    }
+    env[i] = Math.sqrt(s / hop);
+  }
+
+  var on = new Float32Array(n);
+  for (var k = 1; k < n; k++) {
+    var d = env[k] - env[k - 1];
+    on[k] = d > 0 ? d : 0;
+  }
+
+  var fps = sr / hop;
+  var minLag = Math.max(2, Math.round(fps * 60 / 200));
+  var maxLag = Math.round(fps * 60 / 60);
+  var lim = n;
+  var best = -1, bestLag = minLag;
+
+  for (var lag = minLag; lag <= maxLag; lag++) {
+    var sum = 0, cnt = 0;
+    for (var q = lag; q < lim; q += 2) {
+      sum += on[q] * on[q - lag];
+      cnt++;
+    }
+    var norm = cnt > 0 ? sum / cnt : 0;
+    if (norm > best) { best = norm; bestLag = lag; }
+  }
+
+  var bpm = 60 * fps / bestLag;
+  while (bpm < 78) bpm *= 2;
+  while (bpm > 165) bpm /= 2;
+
+  G.onset = on;
+  G.onsetFps = fps;
+  G.bpm = Math.round(bpm);
+  G.beatDur = 60 / G.bpm;
+  findPhase();
+
+  $('bpmText').textContent = G.bpm;
+  $('bpmHint').textContent = '识别到约 ' + G.bpm + ' BPM。如果音符跟鼓点对不上，点下面的「敲击测速」重新校准。';
+  refreshStartBtn();
+}
+
+function findPhase() {
+  if (!G.onset) { G.phase = 0.6; return; }
+  var fps = G.onsetFps;
+  var period = G.beatDur * fps;
+  var n = G.onset.length;
+  var startF = Math.round(fps * 2);
+  var endF = Math.min(n, Math.round(fps * 40));
+  var bestPh = 0, bestScore = -1;
+
+  for (var ph = 0; ph < period; ph += 0.5) {
+    var s = 0, c = 0;
+    for (var t = startF + ph; t < endF; t += period) {
+      var idx = Math.round(t);
+      if (idx >= 0 && idx < n) { s += G.onset[idx]; c++; }
+    }
+    if (c > 3) {
+      var sc = s / c;
+      if (sc > bestScore) { bestScore = sc; bestPh = ph; }
+    }
+  }
+  G.phase = bestPh / fps;
+}
+
+/* =========================================================
+   敲击测速
+   ========================================================= */
+var tapTimes = [];
+var tapResetTimer = null;
+function tapTempo() {
+  var now = (G.ac ? G.ac.currentTime : performance.now() / 1000);
+  clearTimeout(tapResetTimer);
+  tapResetTimer = setTimeout(function () { tapTimes = []; }, 2500);
+
+  tapTimes.push(now);
+  if (tapTimes.length > 12) tapTimes.shift();
+
+  if (tapTimes.length >= 3) {
+    var gaps = [];
+    for (var i = 1; i < tapTimes.length; i++) {
+      var g = tapTimes[i] - tapTimes[i - 1];
+      if (g > 0.22 && g < 1.6) gaps.push(g);
+    }
+    if (gaps.length >= 2) {
+      gaps.sort(function (a, b) { return a - b; });
+      var med = gaps[Math.floor(gaps.length / 2)];
+      var b = Math.round(60 / med);
+      while (b < 60) b *= 2;
+      while (b > 200) b /= 2;
+      G.bpm = b;
+      G.beatDur = 60 / b;
+      findPhase();
+      $('bpmText').textContent = G.bpm;
+      $('bpmHint').textContent = '手动校准：' + G.bpm + ' BPM（敲了 ' + (tapTimes.length) + ' 下）';
+    }
+  }
+  blip(880, 0.05, 0.05);
+}
+
+/* =========================================================
+   生成谱面
+   ========================================================= */
+function buildChart() {
+  G.laneNotes = [[], [], [], []];
+  var beatDur = G.beatDur;
+  var step = beatDur / 2;      // 八分音符网格
+  var phase = G.phase;
+  var dur = G.buffer ? G.buffer.duration : 60;
+  var endT = dur - 1.0;
+  var diff = G.diff;
+
+  // 找到第一个 >= LEAD_IN 的网格点，保证和原曲节拍对齐
+  var s0 = Math.ceil((LEAD_IN - phase) / step);
+  if (s0 < 0) s0 = 0;
+
+  var prevLane = -1;
+  var lastT = -99;
+
+  for (var s = s0; ; s++) {
+    var t = phase + s * step;
+    if (t > endT) break;
+
+    var inBar = ((s % 8) + 8) % 8;   // 每小节 8 个八分格
+    var p = 0;
+
+    if (diff === 0) {
+      if (inBar % 4 === 0) p = 0.88;
+    } else if (diff === 1) {
+      if (inBar % 4 === 0) p = 1.0;
+      else if (inBar % 2 === 0) p = 0.30;
+    } else {
+      if (inBar % 2 === 0) p = 0.95;
+      else p = 0.22;
+    }
+
+    // 用真实鼓点能量加权：有重音的地方更容易出音符
+    if (p > 0 && G.onset) {
+      var idx = Math.floor(t * G.onsetFps);
+      var lo = Math.max(0, idx - 8), hi = Math.min(G.onset.length, idx + 8);
+      var e = 0;
+      for (var z = lo; z < hi; z++) if (G.onset[z] > e) e = G.onset[z];
+      var rel = clamp(e / 0.06, 0, 1);
+      p = clamp(p * (0.55 + rel * 0.9), 0, 1);
+    }
+
+    if (Math.random() < p) {
+      var lane = pickLane(prevLane);
+      addNote(t, lane);
+      prevLane = lane;
+      lastT = t;
+
+      // 偶尔来一个双押
+      var chordChance = diff === 0 ? 0 : (diff === 1 ? 0.06 : 0.14);
+      if (diff > 0 && inBar === 0 && Math.random() < chordChance) {
+        var l2 = pickLane(lane);
+        if (l2 !== lane) addNote(t, l2);
+      }
+    }
+  }
+
+  // 统计
+  G.total = 0;
+  for (var l = 0; l < LANES; l++) {
+    G.laneNotes[l].sort(function (a, b) { return a.t - b.t; });
+    G.total += G.laneNotes[l].length;
+  }
+  G.lp = [0, 0, 0, 0];
+  G.lastNoteT = lastT > 0 ? lastT : 10;
+  G.endTime = Math.min(dur, G.lastNoteT + 2.2);
+}
+
+function pickLane(prev) {
+  var lane;
+  var guard = 0;
+  do {
+    lane = Math.floor(Math.random() * LANES);
+    guard++;
+  } while (lane === prev && guard < 20);
+  return lane;
+}
+
+function addNote(t, lane) {
+  G.laneNotes[lane].push({ t: t, hit: false, judged: false });
+}
+
+/* =========================================================
+   游戏流程
+   ========================================================= */
+function refreshStartBtn() {
+  $('btnStart').disabled = !G.buffer;
+}
+
+function showScreen(which) {
+  $('setup').classList.toggle('hidden', which !== 'setup');
+  $('pause').classList.toggle('hidden', which !== 'pause');
+  $('result').classList.toggle('hidden', which !== 'result');
+  $('pausbtn').classList.toggle('hidden', which !== 'play');
+}
+
+function startGame() {
+  if (!G.buffer) return;
+  var ac = ensureAC();
+  ac.resume();
+
+  buildChart();
+  G.score = 0;
+  G.combo = 0;
+  G.maxCombo = 0;
+  G.cnt = { perfect: 0, good: 0, miss: 0 };
+  G.flash = [0, 0, 0, 0];
+  G.effects = [];
+  G.holding = [0, 0, 0, 0];
+  G.judgeMsg = { text: '', sub: '', t: 99, color: '#fff' };
+
+  if (G.src) { try { G.src.stop(); } catch (e) {} }
+  var src = ac.createBufferSource();
+  src.buffer = G.buffer;
+  src.connect(ac.destination);
+  G.startAt = ac.currentTime + START_DELAY;
+  src.start(G.startAt);
+  G.src = src;
+  G.state = 'play';
+  showScreen('play');
+}
+
+function pauseGame() {
+  if (G.state !== 'play') return;
+  G.state = 'paused';
+  if (G.ac) G.ac.suspend();
+  showScreen('pause');
+}
+
+function resumeGame() {
+  if (G.state !== 'paused') return;
+  if (G.ac) G.ac.resume();
+  G.state = 'play';
+  showScreen('play');
+}
+
+function quitToSetup() {
+  G.state = 'setup';
+  if (G.src) { try { G.src.stop(); } catch (e) {} G.src = null; }
+  if (G.ac) G.ac.suspend();
+  showScreen('setup');
+}
+
+function finishGame() {
+  G.state = 'result';
+  if (G.src) { try { G.src.stop(); } catch (e) {} G.src = null; }
+
+  var judged = G.cnt.perfect + G.cnt.good + G.cnt.miss;
+  var acc = judged > 0 ? (G.cnt.perfect + G.cnt.good * 0.5) / judged : 0;
+
+  var rank = 'D';
+  if (acc >= 0.98 && G.cnt.miss === 0) rank = 'S+';
+  else if (acc >= 0.93) rank = 'S';
+  else if (acc >= 0.85) rank = 'A';
+  else if (acc >= 0.75) rank = 'B';
+  else if (acc >= 0.6) rank = 'C';
+
+  var rankColor = {
+    'S+': '#ffd93c', 'S': '#ffd93c', 'A': '#22d3ee', 'B': '#7c5cff', 'C': '#8b8b9e', 'D': '#ff5c8a'
+  }[rank];
+
+  $('resName').textContent = G.songName || '这首歌';
+  $('resRank').textContent = rank;
+  $('resRank').style.color = rankColor;
+  $('resScore').textContent = G.score;
+  $('resCombo').textContent = G.maxCombo;
+  $('resAcc').textContent = (acc * 100).toFixed(1) + '%';
+  $('resPerfect').textContent = G.cnt.perfect;
+  $('resGood').textContent = G.cnt.good;
+  $('resMiss').textContent = G.cnt.miss;
+  $('resNotes').textContent = judged;
+
+  showScreen('result');
+}
+
+/* =========================================================
+   判定
+   ========================================================= */
+function hitLane(lane) {
+  G.flash[lane] = 1;
+
+  var t = songTime();
+  var arr = G.laneNotes[lane];
+  var lp = G.lp[lane];
+  var bestIdx = -1, bestAbs = 1e9;
+
+  for (var i = lp; i < arr.length; i++) {
+    var n = arr[i];
+    if (n.hit || n.judged) continue;
+    var dt = n.t - t;
+    if (dt > W_GOOD) break;
+    var ad = Math.abs(dt);
+    if (ad <= W_GOOD && ad < bestAbs) { bestAbs = ad; bestIdx = i; }
+  }
+
+  if (bestIdx < 0) {
+    blip(180, 0.04, 0.02);
+    return;
+  }
+
+  var note = arr[bestIdx];
+  note.hit = true;
+  note.judged = true;
+
+  if (bestAbs <= W_PERFECT) {
+    G.cnt.perfect++;
+    G.score += 100 + Math.min(G.combo, 50) * 2;
+    G.combo++;
+    setJudge('PERFECT', '', '#ffd93c');
+    blip(660, 0.07, 0.05);
+    spawnEffect(lane, '#ffd93c');
+  } else {
+    G.cnt.good++;
+    G.score += 50;
+    G.combo++;
+    setJudge('GOOD', '', '#22d3ee');
+    blip(440, 0.07, 0.04);
+    spawnEffect(lane, '#22d3ee');
+  }
+
+  if (G.combo > G.maxCombo) G.maxCombo = G.combo;
+  advanceLane(lane);
+}
+
+function advanceLane(lane) {
+  var arr = G.laneNotes[lane];
+  var lp = G.lp[lane];
+  while (lp < arr.length && arr[lp].judged) lp++;
+  G.lp[lane] = lp;
+}
+
+function setJudge(text, sub, color) {
+  G.judgeMsg.text = text;
+  G.judgeMsg.sub = sub;
+  G.judgeMsg.t = 0;
+  G.judgeMsg.color = color;
+}
+
+function spawnEffect(lane, color) {
+  G.effects.push({ lane: lane, life: 1, color: color });
+}
+
+/* =========================================================
+   每帧更新
+   ========================================================= */
+function update(dt) {
+  var t = songTime();
+
+  // Miss 检查
+  for (var l = 0; l < LANES; l++) {
+    var arr = G.laneNotes[l];
+    var lp = G.lp[l];
+    while (lp < arr.length) {
+      var n = arr[lp];
+      if (n.hit || n.judged) { lp++; continue; }
+      if (t > n.t + W_MISS) {
+        n.judged = true;
+        G.cnt.miss++;
+        G.combo = 0;
+        setJudge('MISS', '', '#ff5c8a');
+        lp++;
+      } else break;
+    }
+    G.lp[l] = lp;
+    if (G.flash[l] > 0) G.flash[l] = Math.max(0, G.flash[l] - dt * 6);
+  }
+
+  // 特效
+  for (var i = G.effects.length - 1; i >= 0; i--) {
+    G.effects[i].life -= dt * 2.6;
+    if (G.effects[i].life <= 0) G.effects.splice(i, 1);
+  }
+
+  // 判定文字计时
+  if (G.judgeMsg.t < 99) G.judgeMsg.t += dt;
+
+  // 结束
+  if (t > G.endTime) finishGame();
+}
+
+/* =========================================================
+   渲染
+   ========================================================= */
+function render() {
+  ctx.clearRect(0, 0, G.W, G.H);
+  if (G.state !== 'play' && G.state !== 'paused') return;
+
+  var t = songTime();
+  var x0 = G.fieldX, w = G.fieldW, lw = G.laneW, jy = G.judgeY;
+
+  // 轨道背景
+  ctx.save();
+  for (var l = 0; l < LANES; l++) {
+    var lx = x0 + l * lw;
+    var g = ctx.createLinearGradient(0, 0, 0, jy);
+    g.addColorStop(0, 'rgba(' + LANE_RGB[l] + ',0.00)');
+    g.addColorStop(1, 'rgba(' + LANE_RGB[l] + ',0.12)');
+    ctx.fillStyle = g;
+    ctx.fillRect(lx, 0, lw, jy);
+
+    // 按下时整轨发光
+    if (G.flash[l] > 0.01) {
+      ctx.fillStyle = 'rgba(' + LANE_RGB[l] + ',' + (0.20 * G.flash[l]).toFixed(3) + ')';
+      ctx.fillRect(lx, 0, lw, jy);
+    }
+  }
+
+  // 分隔线
+  ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+  ctx.lineWidth = 1;
+  for (var s = 0; s <= LANES; s++) {
+    var sx = x0 + s * lw;
+    ctx.beginPath();
+    ctx.moveTo(sx, 0);
+    ctx.lineTo(sx, jy);
+    ctx.stroke();
+  }
+
+  // 判定线
+  var glow = ctx.createLinearGradient(0, jy - 40, 0, jy + 8);
+  glow.addColorStop(0, 'rgba(255,255,255,0)');
+  glow.addColorStop(1, 'rgba(255,255,255,0.30)');
+  ctx.fillStyle = glow;
+  ctx.fillRect(x0, jy - 40, w, 48);
+
+  ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+  ctx.lineWidth = 2.5;
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 14;
+  ctx.beginPath();
+  ctx.moveTo(x0, jy);
+  ctx.lineTo(x0 + w, jy);
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 音符
+  var travel = G.travel;
+  var noteH = 18;
+
+  for (var ln = 0; ln < LANES; ln++) {
+    var arr = G.laneNotes[ln];
+    var start = Math.max(0, G.lp[ln] - 3);
+    for (var i = start; i < arr.length; i++) {
+      var n = arr[i];
+      if (n.hit || n.judged) {
+        if (n.t - t < -W_MISS) continue;
+        continue;
+      }
+      var p = 1 - (n.t - t) / travel;
+      if (p < -0.06) break;
+      if (p > 1.35) continue;
+
+      var y = p * jy;
+      var nx = x0 + ln * lw + lw * 0.13;
+      var nw = lw * 0.74;
+
+      ctx.save();
+      ctx.shadowColor = LANE_COLORS[ln];
+      ctx.shadowBlur = 16;
+      ctx.fillStyle = LANE_COLORS[ln];
+      roundRect(ctx, nx, y - noteH / 2, nw, noteH, 9);
+      ctx.fill();
+      ctx.restore();
+
+      // 高光
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      roundRect(ctx, nx + 4, y - noteH / 2 + 3, nw - 8, 4, 2);
+      ctx.fill();
+    }
+  }
+
+  // 命中特效
+  for (var e = 0; e < G.effects.length; e++) {
+    var ef = G.effects[e];
+    var ex = x0 + ef.lane * lw + lw / 2;
+    var r = (1 - ef.life) * lw * 0.65 + 8;
+    ctx.beginPath();
+    ctx.arc(ex, jy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = ef.color;
+    ctx.globalAlpha = ef.life * 0.8;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // 连击数
+  if (G.combo >= 3) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var cx = G.W / 2;
+    var cy = jy * 0.52;
+    ctx.globalAlpha = 0.92;
+    ctx.font = '800 ' + Math.round(Math.min(G.W * 0.17, 68)) + 'px -apple-system,sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(124,92,255,0.9)';
+    ctx.shadowBlur = 22;
+    ctx.fillText(String(G.combo), cx, cy);
+    ctx.shadowBlur = 0;
+    ctx.font = '600 13px -apple-system,sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.letterSpacing = '4px';
+    ctx.fillText('COMBO', cx, cy + 40);
+    ctx.restore();
+  }
+
+  // 判定文字
+  if (G.judgeMsg.t < 0.65) {
+    var a = 1 - G.judgeMsg.t / 0.65;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.globalAlpha = a;
+    ctx.font = '800 26px -apple-system,sans-serif';
+    ctx.fillStyle = G.judgeMsg.color;
+    ctx.shadowColor = G.judgeMsg.color;
+    ctx.shadowBlur = 18;
+    ctx.fillText(G.judgeMsg.text, G.W / 2, jy * 0.72);
+    ctx.restore();
+  }
+
+  // 分数 + 准确率
+  ctx.save();
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  var topY = 14 + (parseFloat(getComputedStyle(document.body).getPropertyValue('--sat')) || 0);
+  ctx.font = '800 26px -apple-system,sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(String(G.score), G.W - 18, topY + 34);
+  ctx.font = '600 11px -apple-system,sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText('SCORE', G.W - 18, topY + 64);
+  ctx.restore();
+
+  // 进度条
+  var dur = G.buffer ? G.buffer.duration : 1;
+  var prog = clamp(t / dur, 0, 1);
+  ctx.fillStyle = 'rgba(255,255,255,0.12)';
+  ctx.fillRect(0, 0, G.W, 3);
+  ctx.fillStyle = '#22d3ee';
+  ctx.fillRect(0, 0, G.W * prog, 3);
+}
+
+/* =========================================================
+   主循环
+   ========================================================= */
+function loop(ts) {
+  requestAnimationFrame(loop);
+  var dt = Math.min(0.05, (ts - (G.lastFrame || ts)) / 1000);
+  G.lastFrame = ts;
+  if (G.state === 'play') update(dt);
+  render();
+}
+
+/* =========================================================
+   输入
+   ========================================================= */
+var activePointers = {};
+
+function laneFromX(x) {
+  var lane = Math.floor((x - G.fieldX) / G.laneW);
+  return clamp(lane, 0, LANES - 1);
+}
+
+cv.addEventListener('pointerdown', function (ev) {
+  if (G.state !== 'play') return;
+  ev.preventDefault();
+  var lane = laneFromX(ev.clientX);
+  activePointers[ev.pointerId] = lane;
+  hitLane(lane);
+}, { passive: false });
+
+cv.addEventListener('pointerup', function (ev) {
+  delete activePointers[ev.pointerId];
+});
+cv.addEventListener('pointercancel', function (ev) {
+  delete activePointers[ev.pointerId];
+});
+
+window.addEventListener('keydown', function (ev) {
+  if (G.state !== 'play') return;
+  var lane = KEYMAP[ev.code];
+  if (lane === undefined) return;
+  if (ev.repeat) return;
+  ev.preventDefault();
+  hitLane(lane);
+});
+
+document.addEventListener('visibilitychange', function () {
+  if (document.hidden && G.state === 'play') pauseGame();
+});
+
+/* =========================================================
+   演示曲：合成一段 120BPM 的鼓点
+   ========================================================= */
+function makeDemoBuffer() {
+  var ac = ensureAC();
+  var dur = 45;
+  var sr = ac.sampleRate;
+  var buf = ac.createBuffer(1, Math.floor(sr * dur), sr);
+  var ch = buf.getChannelData(0);
+  var bpm = 120;
+  var beat = 60 / bpm;
+  var totalBeats = Math.floor(dur / beat);
+
+  function kick(at, amp) {
+    var len = Math.floor(sr * 0.18);
+    var start = Math.floor(at * sr);
+    for (var i = 0; i < len; i++) {
+      var idx = start + i;
+      if (idx >= ch.length) break;
+      var p = i / len;
+      var env = Math.pow(1 - p, 3);
+      var f = 120 * (1 - p * 0.6);
+      ch[idx] += Math.sin(2 * Math.PI * f * (i / sr)) * env * amp;
+    }
+  }
+  function hat(at, amp) {
+    var len = Math.floor(sr * 0.05);
+    var start = Math.floor(at * sr);
+    for (var i = 0; i < len; i++) {
+      var idx = start + i;
+      if (idx >= ch.length) break;
+      var p = i / len;
+      var env = Math.pow(1 - p, 4);
+      ch[idx] += (Math.random() * 2 - 1) * env * amp;
+    }
+  }
+  function snare(at, amp) {
+    var len = Math.floor(sr * 0.12);
+    var start = Math.floor(at * sr);
+    for (var i = 0; i < len; i++) {
+      var idx = start + i;
+      if (idx >= ch.length) break;
+      var p = i / len;
+      var env = Math.pow(1 - p, 5);
+      ch[idx] += (Math.random() * 2 - 1) * env * amp * 0.7;
+      ch[idx] += Math.sin(2 * Math.PI * 190 * (i / sr)) * env * amp * 0.35;
+    }
+  }
+
+  for (var b = 0; b < totalBeats; b++) {
+    var at = b * beat;
+    if (b % 4 === 0 || b % 4 === 2) kick(at, 0.55);
+    if (b % 4 === 2) snare(at, 0.30);
+    hat(at + beat / 2, 0.10);
+    hat(at, 0.06);
+  }
+
+  G.buffer = buf;
+  G.songName = '演示曲 120BPM';
+  G.onset = null;
+  G.bpm = 120;
+  G.beatDur = 0.5;
+  G.phase = 0;
+
+  $('musicName').textContent = '演示鼓点（合成）';
+  $('musicSub').textContent = '0:45 · 120 BPM';
+  $('bpmText').textContent = '120';
+  $('bpmHint').textContent = '这是内置的合成鼓点，用来试手感。换成你自己的歌会重新识别速度。';
+  refreshStartBtn();
+  toast('演示曲准备好了，点「开始游戏」试试');
+}
+
+/* =========================================================
+   事件绑定
+   ========================================================= */
+$('fMusic').addEventListener('change', function (e) {
+  handleMusic(e.target.files && e.target.files[0]);
+});
+$('fBg').addEventListener('change', function (e) {
+  handleBg(e.target.files && e.target.files[0]);
+});
+
+$('bpmMinus').addEventListener('click', function () {
+  G.bpm = clamp(G.bpm - 1, 40, 220);
+  G.beatDur = 60 / G.bpm;
+  findPhase();
+  $('bpmText').textContent = G.bpm;
+});
+$('bpmPlus').addEventListener('click', function () {
+  G.bpm = clamp(G.bpm + 1, 40, 220);
+  G.beatDur = 60 / G.bpm;
+  findPhase();
+  $('bpmText').textContent = G.bpm;
+});
+$('tapBtn').addEventListener('click', function (e) {
+  e.preventDefault();
+  ensureAC().resume();
+  tapTempo();
+});
+
+$('diffPills').addEventListener('click', function (e) {
+  var el = e.target.closest('.pill');
+  if (!el) return;
+  var all = $('diffPills').querySelectorAll('.pill');
+  for (var i = 0; i < all.length; i++) all[i].classList.remove('on');
+  el.classList.add('on');
+  G.diff = parseInt(el.dataset.d, 10);
+});
+
+$('speed').addEventListener('input', function (e) {
+  var v = parseFloat(e.target.value);          // 1..10
+  var travel = 2.30 - (v - 1) * (2.30 - 0.95) / 9;
+  G.travel = clamp(travel, 0.95, 2.30);
+});
+
+$('btnStart').addEventListener('click', startGame);
+$('btnDemo').addEventListener('click', function () {
+  ensureAC().resume();
+  makeDemoBuffer();
+});
+
+$('pausbtn').addEventListener('click', pauseGame);
+$('btnResume').addEventListener('click', resumeGame);
+$('btnRestart').addEventListener('click', function () {
+  G.state = 'play';
+  if (G.ac) G.ac.resume();
+  startGame();
+});
+$('btnQuit').addEventListener('click', quitToSetup);
+$('btnAgain').addEventListener('click', function () {
+  if (G.ac) G.ac.resume();
+  startGame();
+});
+$('btnChange').addEventListener('click', quitToSetup);
+
+/* =========================================================
+   启动
+   ========================================================= */
+/* iOS / 部分安卓浏览器要求音频必须由用户手势创建或恢复，
+   否则解码后也放不出声。第一次触摸时先解锁一次。 */
+document.addEventListener('pointerdown', function unlockAudio() {
+  try {
+    var ac = ensureAC();
+    if (ac.state === 'suspended') ac.resume();
+  } catch (e) {}
+  document.removeEventListener('pointerdown', unlockAudio);
+}, { passive: true });
+
+resize();
+showScreen('setup');
+requestAnimationFrame(loop);
+
+/* PWA 离线缓存（APK 里加载的是 file://，跳过） */
+if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  });
+}
+
+})();
+</script>
+</body>
+</html>

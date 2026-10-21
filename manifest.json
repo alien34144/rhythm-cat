@@ -1,0 +1,28 @@
+{
+  "name": "节奏猫 · 我的音游",
+  "short_name": "节奏猫",
+  "description": "用你自己下载的歌和你自己的图片（含 GIF 动图），玩一款休闲音游。",
+  "lang": "zh-CN",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "any",
+  "background_color": "#07070C",
+  "theme_color": "#07070C",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
